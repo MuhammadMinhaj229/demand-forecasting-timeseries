@@ -217,7 +217,7 @@ uvicorn src.api:app --reload
 
 ## 🔗 Live Demo
 
-👉 **[Launch Forecast Dashboard](https://demand-forecasting-minhaj.streamlit.app)**
+👉 **[Launch Forecast Dashboard](https://demand-forecasting-dashboard.onrender.com)**
 
 ---
 

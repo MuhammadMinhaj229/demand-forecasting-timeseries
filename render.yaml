@@ -1,8 +1,8 @@
 services:
   - type: web
-    name: aqi-alerts-backend # Re-using an existing name from workspace for demonstration, though it could be a new one
+    name: demand-forecasting-api
     env: python
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements.txt && python src/train.py
     startCommand: uvicorn src.api:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
@@ -19,5 +19,5 @@ services:
       - key: API_URL
         fromService:
           type: web
-          name: aqi-alerts-backend
+          name: demand-forecasting-api
           envVarKey: RENDER_EXTERNAL_URL
