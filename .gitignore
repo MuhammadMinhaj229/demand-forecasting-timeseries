@@ -2,5 +2,6 @@ data/
 __pycache__/
 .ipynb_checkpoints/
 *.pkl
+!models/*.pkl
 .env
 mlruns/api_output.log

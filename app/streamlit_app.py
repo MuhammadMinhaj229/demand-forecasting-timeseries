@@ -40,7 +40,13 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-API_URL = os.getenv("API_URL", "http://localhost:8000")
+import joblib
+
+# Load the model locally
+@st.cache_resource
+def load_model():
+    model_path = os.path.join(os.path.dirname(__file__), "../models/lgbm_forecast.pkl")
+    return joblib.load(model_path)
 
 # Header Section
 st.title("📈 Demand Forecasting Intelligence")
@@ -99,74 +105,72 @@ with tab1:
 
         try:
             with st.spinner("Analyzing parameters and inferencing model..."):
-                response = httpx.post(f"{API_URL}/predict", json=payload, timeout=10.0)
+                t_start = datetime.datetime.now()
+                model = load_model()
+                df = pd.DataFrame([payload])
+                pred = float(model.predict(df)[0])
+                elapsed_ms = (datetime.datetime.now() - t_start).total_seconds() * 1000
 
-            if response.status_code == 200:
-                data = response.json()
-                pred = data['predicted_demand']
+            # KPI Metrics Row
+            cols = st.columns(3)
 
-                # KPI Metrics Row
-                cols = st.columns(3)
+            with cols[0]:
+                st.markdown(f"""
+                    <div class="metric-card">
+                        <h3>🔮 Predicted Demand</h3>
+                        <h1 style="color: #4CAF50;">{pred:.0f}</h1>
+                        <p>Units needed</p>
+                    </div>
+                """, unsafe_allow_html=True)
 
-                with cols[0]:
-                    st.markdown(f"""
-                        <div class="metric-card">
-                            <h3>🔮 Predicted Demand</h3>
-                            <h1 style="color: #4CAF50;">{pred:.0f}</h1>
-                            <p>Units needed</p>
-                        </div>
-                    """, unsafe_allow_html=True)
+            with cols[1]:
+                # Mocking previous period for comparison metric
+                delta = pred - rolling_mean_7
+                color = "green" if delta > 0 else "red"
+                arrow = "↑" if delta > 0 else "↓"
+                st.markdown(f"""
+                    <div class="metric-card">
+                        <h3>⚖️ vs 7-Day Avg</h3>
+                        <h1 style="color: {color};">{arrow} {abs(delta):.0f}</h1>
+                        <p>Variance</p>
+                    </div>
+                """, unsafe_allow_html=True)
 
-                with cols[1]:
-                    # Mocking previous period for comparison metric
-                    delta = pred - rolling_mean_7
-                    color = "green" if delta > 0 else "red"
-                    arrow = "↑" if delta > 0 else "↓"
-                    st.markdown(f"""
-                        <div class="metric-card">
-                            <h3>⚖️ vs 7-Day Avg</h3>
-                            <h1 style="color: {color};">{arrow} {abs(delta):.0f}</h1>
-                            <p>Variance</p>
-                        </div>
-                    """, unsafe_allow_html=True)
+            with cols[2]:
+                st.markdown(f"""
+                    <div class="metric-card">
+                        <h3>⏱️ Inference Latency</h3>
+                        <h1 style="color: #2196F3;">{elapsed_ms:.0f} ms</h1>
+                        <p>Response Time</p>
+                    </div>
+                """, unsafe_allow_html=True)
 
-                with cols[2]:
-                    st.markdown(f"""
-                        <div class="metric-card">
-                            <h3>⏱️ API Latency</h3>
-                            <h1 style="color: #2196F3;">{response.elapsed.total_seconds() * 1000:.0f} ms</h1>
-                            <p>Response Time</p>
-                        </div>
-                    """, unsafe_allow_html=True)
+            st.write("") # Spacer
 
-                st.write("") # Spacer
+            # Visualization: Current state vs historical context
+            st.subheader("📈 Demand Context Visualization")
 
-                # Visualization: Current state vs historical context
-                st.subheader("📈 Demand Context Visualization")
+            chart_data = pd.DataFrame({
+                "Period": ["30 Days Ago", "14 Days Ago", "7 Days Ago", "Predicted (Now)"],
+                "Demand": [lag_30, lag_14, lag_7, pred]
+            })
 
-                chart_data = pd.DataFrame({
-                    "Period": ["30 Days Ago", "14 Days Ago", "7 Days Ago", "Predicted (Now)"],
-                    "Demand": [lag_30, lag_14, lag_7, pred]
-                })
+            fig = px.line(chart_data, x="Period", y="Demand", markers=True,
+                           title="Historical Demand Trajectory vs Prediction")
+            fig.update_traces(line=dict(color="#FF5722", width=3), marker=dict(size=10))
 
-                fig = px.line(chart_data, x="Period", y="Demand", markers=True,
-                              title="Historical Demand Trajectory vs Prediction")
-                fig.update_traces(line=dict(color="#FF5722", width=3), marker=dict(size=10))
+            # Highlight prediction
+            fig.add_scatter(x=["Predicted (Now)"], y=[pred], mode="markers",
+                            marker=dict(color="#4CAF50", size=14, symbol="star"),
+                            name="Forecast")
 
-                # Highlight prediction
-                fig.add_scatter(x=["Predicted (Now)"], y=[pred], mode="markers",
-                                marker=dict(color="#4CAF50", size=14, symbol="star"),
-                                name="Forecast")
+            fig.update_layout(plot_bgcolor='white', xaxis_title="", yaxis_title="Units")
+            fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='LightGray')
 
-                fig.update_layout(plot_bgcolor='white', xaxis_title="", yaxis_title="Units")
-                fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='LightGray')
+            st.plotly_chart(fig, use_container_width=True)
 
-                st.plotly_chart(fig, use_container_width=True)
-
-            else:
-                st.error(f"⚠️ API Error: {response.status_code} - {response.text}")
         except Exception as e:
-            st.error(f"❌ Failed to connect to backend API: {e}. Ensure FastAPI is running on {API_URL}.")
+            st.error(f"❌ Inference error: {e}")
     else:
         st.info("👈 Adjust parameters in the sidebar and click **Generate Real-Time Forecast** to begin.")
 
