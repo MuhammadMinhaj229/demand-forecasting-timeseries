@@ -1,5 +1,7 @@
 # 📈 Demand Forecasting & Time Series Analysis
 
+[![Streamlit App](https://static.streamlit.io/badgebar/badge.svg)](https://demand-forecasting-timeseries-2c28agejbap9ell2fr9owv.streamlit.app/)
+
 ![Python](https://img.shields.io/badge/Python-3.10-blue)
 ![Prophet](https://img.shields.io/badge/Prophet-1.1.4-orange)
 ![LightGBM](https://img.shields.io/badge/LightGBM-4.1.0-green)
@@ -217,7 +219,7 @@ uvicorn src.api:app --reload
 
 ## 🔗 Live Demo
 
-👉 **[Launch Forecast Dashboard](https://demand-forecasting-dashboard.onrender.com)**
+👉 **[Launch Forecast Dashboard](https://demand-forecasting-timeseries-2c28agejbap9ell2fr9owv.streamlit.app/)**
 
 ---
 
