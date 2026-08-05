@@ -1,227 +1,122 @@
-# 📈 Demand Forecasting & Time Series Analysis
+# Demand Forecasting & Time Series Analysis
 
-[![Streamlit App](https://static.streamlit.io/badgebar/badge.svg)](https://demand-forecasting-timeseries-2c28agejbap9ell2fr9owv.streamlit.app/)
+This repository contains a demand forecasting pipeline built on a time-series dataset. It demonstrates how to explore the data, engineer features, and train multiple time-series and machine learning models to forecast future demand.
 
-![Python](https://img.shields.io/badge/Python-3.10-blue)
-![Prophet](https://img.shields.io/badge/Prophet-1.1.4-orange)
-![LightGBM](https://img.shields.io/badge/LightGBM-4.1.0-green)
-![MLflow](https://img.shields.io/badge/MLflow-2.8-purple)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.104-teal)
-![Status](https://img.shields.io/badge/Status-Complete-brightgreen)
+## Problem / Motivation
 
-> **Built a production-grade demand forecasting system comparing 4 models
-> (ARIMA, SARIMA, Prophet, LightGBM) with MLflow experiment tracking and
-> a FastAPI endpoint for real-time forecast serving.**
+The goal of this project is to explore the predictability of the bike sharing demand time series by comparing statistical approaches (ARIMA/SARIMA) with an additive model (Prophet) and a gradient boosting approach (LightGBM).
 
----
+## Approach
 
-## 🏢 The Real Business Problem
+1. **Exploratory Data Analysis (EDA):** `notebooks/01_eda_timeseries.ipynb` loads the data and performs basic exploratory analysis.
+2. **Statistical Baselines (ARIMA/SARIMA):** `notebooks/02_arima_sarima.ipynb` resamples the data to a daily frequency and fits `pmdarima` auto-ARIMA models to establish a baseline.
+3. **Prophet Additive Model:** `notebooks/03_prophet_model.ipynb` fits a Prophet model that incorporates yearly, weekly, and daily seasonality, along with public holidays.
+4. **LightGBM:** `notebooks/04_lightgbm_model.ipynb` applies a gradient boosting regressor on engineered features including lags, rolling statistics, and calendar attributes.
+5. **Experiment Tracking:** The training script `src/train.py` uses `MLflow` to log LightGBM parameters and evaluation metrics.
+6. **API and Dashboard:** The repository includes a FastAPI endpoint (`src/api.py`) for serving predictions and a Streamlit dashboard (`app/streamlit_app.py`) for visualization.
 
-Every product-based business — retail, e-commerce, manufacturing,
-FMCG — faces the same painful problem:
+## Results
 
-**Problem 1 — Overstocking**
-They order too much inventory. Products sit in warehouses.
-Capital is locked. Storage costs rise. Products expire or go out of season.
-A mid-size retailer overstocking by just 10% loses
-**₹40–80 Lakhs annually** in holding costs alone.
+Models were evaluated on a temporal train-test split (80/20). For LightGBM, a 5-fold TimeSeriesSplit was used to cross-validate the performance. The following metrics were recorded (see outputs in respective notebooks and `src/train.py`):
 
-**Problem 2 — Understocking**
-They order too little. Shelves go empty. Customers leave.
-Sales are lost permanently — a customer who can't find
-what they want goes to a competitor and often never returns.
-Stockouts cost Indian retailers an estimated **₹2,000 Crores annually.**
+| Model | MAPE | RMSE | MAE | Source |
+|-------|------|------|-----|--------|
+| ARIMA (Daily) | ~1.17% | 49.14 | 40.28 | `notebooks/02_arima_sarima.ipynb` |
+| SARIMA (Daily, m=7) | ~1.10% | 46.36 | 37.86 | `notebooks/02_arima_sarima.ipynb` |
+| Prophet (Hourly) | ~9.02% | 14.94 | 11.98 | `notebooks/03_prophet_model.ipynb` |
+| LightGBM (Hourly) | ~8.53% | 12.60 | 10.11 | `src/train.py` |
 
-**Problem 3 — Manual Forecasting**
-Most businesses use gut feeling, last year's numbers,
-or simple Excel averages. These methods ignore seasonality,
-trends, holidays, and external events — leading to consistently
-wrong predictions.
+*(Note: ARIMA/SARIMA were evaluated on daily aggregated demand for feasibility, while Prophet and LightGBM were evaluated on the original hourly frequency. MAPE percentages for ARIMA/SARIMA correspond to 0.0117 and 0.0110 in the raw output).*
 
-**The business need:**
-A system that looks at historical sales data and accurately
-predicts future demand — so procurement, operations, and
-finance teams can make decisions with confidence.
+## Tech Stack
 
----
+- **Data Manipulation:** `pandas`, `numpy`
+- **Machine Learning:** `scikit-learn`, `lightgbm`, `prophet`, `pmdarima`
+- **Experiment Tracking:** `mlflow`
+- **API:** `fastapi`, `uvicorn`, `pydantic`
+- **Dashboard:** `streamlit`, `plotly`
 
-## 💡 The Solution This Project Builds
+## Project Structure
 
-A complete multi-model forecasting pipeline that:
-
-1. **Analyzes historical patterns** — trend, seasonality, anomalies
-2. **Tests 4 different forecasting approaches** — from statistical to ML
-3. **Tracks every experiment** — MLflow logs all 40+ model runs
-4. **Serves predictions via API** — FastAPI endpoint for integration
-5. **Visualizes forecasts** — interactive Streamlit dashboard
-
-### The 4 Models Compared
-
-| Model | Type | Best For |
-|-------|------|----------|
-| **ARIMA** | Statistical | Short-term, stationary series |
-| **SARIMA** | Statistical | Series with clear seasonality |
-| **Prophet** | Additive | Holidays, weekly/yearly patterns |
-| **LightGBM** | ML | Complex patterns, multiple features |
-
-### Feature Engineering for LightGBM
-
-| Feature Type | Examples |
-|-------------|----------|
-| Lag features | Sales 7 days ago, 14 days ago, 30 days ago |
-| Rolling stats | 7-day rolling mean, 30-day rolling std |
-| Calendar features | Day of week, month, quarter, is_weekend |
-| Holiday features | Indian festivals, regional holidays |
-
----
-
-## 📊 Model Performance Results
-
-Evaluated using TimeSeriesSplit (5 folds) — never random split.
-
-| Model | RMSE | MAE | MAPE |
-|-------|------|-----|------|
-| ARIMA | 284.3 | 201.7 | 14.2% |
-| SARIMA | 251.8 | 188.4 | 12.8% |
-| Prophet | 198.4 | 154.2 | 9.6% |
-| **LightGBM** | **142.7** | **108.3** | **6.8%** |
-
-> **LightGBM wins** — 52% lower MAPE than ARIMA baseline.
-> Industry acceptable MAPE for retail forecasting: under 10%.
-
----
-
-## 📊 Business Impact
-
-| Metric | Before | After |
-|--------|--------|-------|
-| Forecast accuracy | ~65% (Excel average) | ~93% (LightGBM) |
-| Overstock incidents | Monthly | Reduced by 34% |
-| Stockout incidents | Monthly | Reduced by 41% |
-| Inventory holding cost | Baseline | Estimated 18–25% reduction |
-| Planning cycle time | 3–4 days manual | Real-time API response |
-
-> **Industry benchmark:** A 6% MAPE improvement in demand forecasting
-> translates to **8–12% reduction in inventory costs** for mid-size retailers.
-
----
-
-## 🌍 Industries Where This System Applies
-
-| Industry | Use Case | Impact |
-|----------|----------|--------|
-| **Retail / FMCG** | Stock replenishment planning | 20–30% inventory cost reduction |
-| **E-Commerce** | Warehouse stocking by SKU | Reduce delivery delays |
-| **Manufacturing** | Raw material procurement | Reduce production downtime |
-| **Healthcare** | Medicine and equipment demand | Prevent critical stockouts |
-| **Logistics** | Vehicle and route demand | Optimize fleet utilization |
-| **Energy** | Power demand forecasting | Grid load balancing |
-| **Agriculture** | Crop yield and price forecasting | Better procurement pricing |
-
----
-
-## 🛠️ Complete Tech Stack
-
-| Category | Tool | Purpose |
-|----------|------|---------|
-| Data Processing | Python, Pandas, NumPy | Loading, cleaning, feature engineering |
-| Statistical Models | statsmodels, pmdarima | ARIMA, SARIMA with auto parameter tuning |
-| ML Forecasting | LightGBM, XGBoost | Gradient boosting on engineered features |
-| Additive Model | Prophet | Trend + seasonality + holiday decomposition |
-| Experiment Tracking | MLflow | Log 40+ runs, compare models, register best |
-| Visualization | Plotly, Matplotlib | Interactive forecast charts |
-| API Serving | FastAPI + Uvicorn | Real-time forecast endpoint |
-| Dashboard | Streamlit | Business-facing interactive dashboard |
-| Validation | TimeSeriesSplit | Proper temporal cross-validation |
-
----
-
-## 📁 Project Structure
-
+```
 demand-forecasting-timeseries/
-├── data/
-│   └── bike_sharing.csv           # UCI Bike Sharing dataset (daily + hourly)
-├── notebooks/
-│   ├── 01_eda_timeseries.ipynb    # Stationarity, ACF/PACF, decomposition
-│   ├── 02_arima_sarima.ipynb      # Statistical baseline models
-│   ├── 03_prophet_model.ipynb     # Prophet with holidays and CV
-│   └── 04_lightgbm_model.ipynb   # Feature engineering + ML forecasting
 ├── app/
-│   └── streamlit_app.py           # Forecast dashboard
-├── src/
-│   ├── init.py
-│   ├── feature_engineering.py     # Lag, rolling, calendar features
-│   └── model_utils.py             # Train, evaluate, log to MLflow
+│   └── streamlit_app.py           # Streamlit dashboard
+├── data/
+│   └── bike_sharing.csv           # Raw dataset
 ├── models/
-│   └── lgbm_forecast.pkl          # Best model saved
-├── requirements.txt
-└── README.md
-
----
-
-## 🔑 Key Technical Decisions
-
-**Why TimeSeriesSplit instead of random split?**
-Time series data has temporal order. Using random train/test split
-causes data leakage — the model sees future data during training.
-TimeSeriesSplit always trains on past, tests on future. This gives
-honest, realistic performance estimates.
-
-**Why LightGBM over deep learning (LSTM)?**
-On tabular time series data with engineered features, gradient
-boosting consistently outperforms LSTM with:
-- 10x faster training
-- No GPU required
-- More interpretable
-- Better performance on datasets under 100K rows
-
-**Why MLflow?**
-Every experiment — hyperparameter combination, feature set,
-model type — is logged. Results are reproducible. The best
-model is registered and versioned for deployment.
-
----
-
-## 🚀 How to Run Locally
-
-```bash
-# Clone repo
-git clone https://github.com/MuhammadMinhaj229/demand-forecasting-timeseries.git
-cd demand-forecasting-timeseries
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run notebooks in order (01 → 02 → 03 → 04)
-
-# Start MLflow UI
-mlflow ui
-
-# Launch dashboard
-streamlit run app/streamlit_app.py
-
-# Start API
-uvicorn src.api:app --reload
+│   └── lgbm_forecast.pkl          # Serialized LightGBM model
+├── notebooks/
+│   ├── 01_eda_timeseries.ipynb
+│   ├── 02_arima_sarima.ipynb
+│   ├── 03_prophet_model.ipynb
+│   └── 04_lightgbm_model.ipynb
+├── src/
+│   ├── api.py                     # FastAPI application
+│   ├── feature_engineering.py     # Feature engineering script
+│   └── train.py                   # MLflow training script
+├── tests/
+│   └── test_api.py                # Pytest cases for the API
+├── README.md
+└── requirements.txt
 ```
 
+## How to Run Locally
+
+1. **Clone the repository:**
+   ```bash
+   git clone <repository_url>
+   cd <repository_directory>
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+   *Note: You may also need to install `jupyter`, `pmdarima`, `prophet`, and `pytest` depending on your environment.*
+
+3. **Train the model and track with MLflow:**
+   ```bash
+   python src/train.py
+   ```
+   You can view the MLflow UI by running `mlflow ui` (it logs to a local `mlruns.db`).
+
+4. **Start the API:**
+   ```bash
+   uvicorn src.api:app --reload
+   ```
+
+5. **Start the Dashboard:**
+   In a separate terminal, run:
+   ```bash
+   streamlit run app/streamlit_app.py
+   ```
+
+6. **Run Tests:**
+   ```bash
+   python -m pytest tests/
+   ```
+
+## Limitations & Future Work
+
+- **Dataset:** The provided data is static and represents a point-in-time snapshot of demand. Real-world applications require a pipeline to handle streaming or continually appended data.
+- **Comparison Baseline:** The statistical models (ARIMA/SARIMA) were applied to daily aggregated data, while Prophet and LightGBM were trained on hourly data. A direct comparison requires harmonizing the time scale.
+- **Model Deployment:** The current setup loads a local `.pkl` file into a local FastAPI instance. In a production scenario, the model would likely be served from a model registry or robust cloud storage.
+- **Dashboard Integration:** The Streamlit dashboard currently loads the local model directly rather than querying the FastAPI endpoint, meaning the API is largely decoupled from the frontend in this configuration.
+
 ---
 
-## 📈 Key Findings Summary
+### UNVERIFIED CLAIMS — NOT INCLUDED
 
-- **Strong weekly seasonality** — weekday demand 2.3x higher than weekends
-- **Clear yearly trend** — 17% year-over-year growth in bike demand
-- **Holiday effect** — demand drops 31% on public holidays
-- **Top LightGBM features** — lag_7, rolling_mean_30, hour, temp
-- **Best model** — LightGBM with MAPE 6.8% vs ARIMA baseline 14.2%
-- **40+ MLflow experiments** — full comparison logged and reproducible
+The previous version of this README contained several marketing claims and tables that could not be verified by the code in this repository. These have been removed:
 
----
+- Any ROI, cost savings, or revenue numbers (e.g., "₹40–80 Lakhs annually", "₹2,000 Crores annually", "18–25% reduction").
+- Business impact tables claiming specific reductions in stockout incidents or planning cycle time.
+- Market sizing or applicability tables ("Industries Where This Applies").
+- Subjective marketing adjectives like "production-grade", "enterprise", or "cutting-edge".
+- Any mention of the FastAPI serving real-time predictions to the dashboard (the dashboard currently loads the model from disk directly).
 
-## 🔗 Live Demo
-
-👉 **[Launch Forecast Dashboard](https://demand-forecasting-timeseries-2c28agejbap9ell2fr9owv.streamlit.app/)**
-
----
+## Author / Links
 
 *Built by Mohammed Minhaj Mahmood*
 *[LinkedIn](https://linkedin.com/in/muhammadminhaj229) · [GitHub](https://github.com/MuhammadMinhaj229) · Hyderabad, India*
