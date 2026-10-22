@@ -1,4 +1,4 @@
-# 📈 Demand Forecasting & Time Series Analysis
+# Demand Forecasting & Time Series Analysis
 
 [![Streamlit App](https://static.streamlit.io/badgebar/badge.svg)](https://demand-forecasting-timeseries-2c28agejbap9ell2fr9owv.streamlit.app/)
 
@@ -15,7 +15,7 @@
 
 ---
 
-## 🏢 The Real Business Problem
+## The Real Business Problem
 
 Every product-based business — retail, e-commerce, manufacturing,
 FMCG — faces the same painful problem:
@@ -45,7 +45,7 @@ finance teams can make decisions with confidence.
 
 ---
 
-## 💡 The Solution This Project Builds
+## The Solution This Project Builds
 
 A complete multi-model forecasting pipeline that:
 
@@ -75,7 +75,7 @@ A complete multi-model forecasting pipeline that:
 
 ---
 
-## 📊 Model Performance Results
+## Model Performance Results
 
 Evaluated using TimeSeriesSplit (5 folds) — never random split.
 
@@ -91,7 +91,7 @@ Evaluated using TimeSeriesSplit (5 folds) — never random split.
 
 ---
 
-## 📊 Business Impact
+## Business Impact
 
 | Metric | Before | After |
 |--------|--------|-------|
@@ -106,7 +106,7 @@ Evaluated using TimeSeriesSplit (5 folds) — never random split.
 
 ---
 
-## 🌍 Industries Where This System Applies
+## Industries Where This System Applies
 
 | Industry | Use Case | Impact |
 |----------|----------|--------|
@@ -120,7 +120,7 @@ Evaluated using TimeSeriesSplit (5 folds) — never random split.
 
 ---
 
-## 🛠️ Complete Tech Stack
+## Complete Tech Stack
 
 | Category | Tool | Purpose |
 |----------|------|---------|
@@ -136,30 +136,30 @@ Evaluated using TimeSeriesSplit (5 folds) — never random split.
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 demand-forecasting-timeseries/
-├── data/
-│   └── bike_sharing.csv           # UCI Bike Sharing dataset (daily + hourly)
-├── notebooks/
-│   ├── 01_eda_timeseries.ipynb    # Stationarity, ACF/PACF, decomposition
-│   ├── 02_arima_sarima.ipynb      # Statistical baseline models
-│   ├── 03_prophet_model.ipynb     # Prophet with holidays and CV
-│   └── 04_lightgbm_model.ipynb   # Feature engineering + ML forecasting
-├── app/
-│   └── streamlit_app.py           # Forecast dashboard
-├── src/
-│   ├── init.py
-│   ├── feature_engineering.py     # Lag, rolling, calendar features
-│   └── model_utils.py             # Train, evaluate, log to MLflow
-├── models/
-│   └── lgbm_forecast.pkl          # Best model saved
-├── requirements.txt
-└── README.md
+ data/
+    bike_sharing.csv           # UCI Bike Sharing dataset (daily + hourly)
+ notebooks/
+    01_eda_timeseries.ipynb    # Stationarity, ACF/PACF, decomposition
+    02_arima_sarima.ipynb      # Statistical baseline models
+    03_prophet_model.ipynb     # Prophet with holidays and CV
+    04_lightgbm_model.ipynb   # Feature engineering + ML forecasting
+ app/
+    streamlit_app.py           # Forecast dashboard
+ src/
+    init.py
+    feature_engineering.py     # Lag, rolling, calendar features
+    model_utils.py             # Train, evaluate, log to MLflow
+ models/
+    lgbm_forecast.pkl          # Best model saved
+ requirements.txt
+ README.md
 
 ---
 
-## 🔑 Key Technical Decisions
+## Key Technical Decisions
 
 **Why TimeSeriesSplit instead of random split?**
 Time series data has temporal order. Using random train/test split
@@ -182,7 +182,7 @@ model is registered and versioned for deployment.
 
 ---
 
-## 🚀 How to Run Locally
+## How to Run Locally
 
 ```bash
 # Clone repo
@@ -206,7 +206,7 @@ uvicorn src.api:app --reload
 
 ---
 
-## 📈 Key Findings Summary
+## Key Findings Summary
 
 - **Strong weekly seasonality** — weekday demand 2.3x higher than weekends
 - **Clear yearly trend** — 17% year-over-year growth in bike demand
@@ -217,9 +217,9 @@ uvicorn src.api:app --reload
 
 ---
 
-## 🔗 Live Demo
+## Live Demo
 
-👉 **[Launch Forecast Dashboard](https://demand-forecasting-timeseries-2c28agejbap9ell2fr9owv.streamlit.app/)**
+ **[Launch Forecast Dashboard](https://demand-forecasting-timeseries-2c28agejbap9ell2fr9owv.streamlit.app/)**
 
 ---
 
