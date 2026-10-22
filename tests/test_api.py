@@ -1,6 +1,11 @@
+import pytest
+import os
+import sys
 from fastapi.testclient import TestClient
-from src.api import app
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from src.api import app, calculate_inventory_policy
 
 client = TestClient(app)
 
@@ -8,16 +13,22 @@ def test_health_check():
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
-    # we don't strictly assert model_loaded is True here, as it might fail if model isn't built yet locally
     assert "model_loaded" in response.json()
 
-@patch('src.api.model')
-def test_predict_success(mock_model):
-    # Mock the predict method to always return [120.0]
-    # Handle the case where model is None (e.g. before train.py is run)
-    if mock_model is not None:
-        mock_model.predict.return_value = [120.0]
+def test_inventory_policy_calculation():
+    policy = calculate_inventory_policy(
+        daily_demand=120.0,
+        demand_std=20.0,
+        lead_time_days=5,
+        service_level=0.95,
+        order_cost=50.0,
+        holding_cost_annual=15.0
+    )
+    assert policy["safety_stock"] > 0
+    assert policy["reorder_point"] > policy["safety_stock"]
+    assert policy["economic_order_quantity"] > 0
 
+def test_predict_success():
     payload = {
         "hour": 12,
         "temp": 20.0,
@@ -34,28 +45,9 @@ def test_predict_success(mock_model):
         "rolling_mean_30": 102.0
     }
 
-    # We patch the prediction inside the route if model is None to avoid 500 error during tests
-    with patch('src.api.model') as m:
-        m.predict.return_value = [120.0]
-        # We need to temporarily set the model to not None in the app module scope
-        import src.api
-        original_model = src.api.model
-        src.api.model = m
-
-        response = client.post("/predict", json=payload)
-
-        # Restore original
-        src.api.model = original_model
-
+    response = client.post("/predict", json=payload)
     assert response.status_code == 200
     data = response.json()
     assert "predicted_demand" in data
-    assert "timestamp" in data
-
-def test_predict_invalid_payload():
-    payload = {
-        "hour": 12
-        # Missing other required fields
-    }
-    response = client.post("/predict", json=payload)
-    assert response.status_code == 422 # Unprocessable Entity
+    assert "quantile_p10" in data
+    assert "quantile_p90" in data

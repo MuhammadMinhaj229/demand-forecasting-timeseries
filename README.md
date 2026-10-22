@@ -1,17 +1,13 @@
-# Demand Forecasting & Time Series Analysis
+# Supply Chain Demand Forecasting & Inventory Replenishment Platform
 
 [![Streamlit App](https://static.streamlit.io/badgebar/badge.svg)](https://demand-forecasting-timeseries-2c28agejbap9ell2fr9owv.streamlit.app/)
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-Production%20Ready-009688)
+![LightGBM](https://img.shields.io/badge/LightGBM-Gradient%20Boosting-orange)
+![Tests](https://img.shields.io/badge/Tests-Passing-brightgreen)
+![License](https://img.shields.io/badge/License-MIT-blue)
 
-![Python](https://img.shields.io/badge/Python-3.10-blue)
-![Prophet](https://img.shields.io/badge/Prophet-1.1.4-orange)
-![LightGBM](https://img.shields.io/badge/LightGBM-4.1.0-green)
-![MLflow](https://img.shields.io/badge/MLflow-2.8-purple)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.104-teal)
-![Status](https://img.shields.io/badge/Status-Complete-brightgreen)
-
-> **Built a production-grade demand forecasting system comparing 4 models
-> (ARIMA, SARIMA, Prophet, LightGBM) with MLflow experiment tracking and
-> a FastAPI endpoint for real-time forecast serving.**
+An enterprise time-series demand intelligence platform delivering probabilistic quantile forecasting (P10, P50, P90) coupled with dynamic Safety Stock and Economic Order Quantity (EOQ) replenishment optimization for supply chain operations.
 
 ---
 
@@ -19,225 +15,125 @@
 
 ```mermaid
 flowchart TD
-    SeriesData["Historical Time-Series Records"] --> Features["Lags, Rolling Means & Calendar Features"]
-    Features --> Models["Model Benchmark Engine"]
-    Models --> LightGBM["LightGBM Regressor"]
-    Models --> Prophet["Facebook Prophet"]
-    Models --> ARIMA["ARIMA / SARIMA"]
-    Models --> Evaluation["RMSE, MAE & MAPE Tracking"]
-    Evaluation --> API["FastAPI Serving Endpoint"]
-    API --> Dashboard["Interactive Streamlit Interface"]
+    Telemetry["Historical Ingestion: Time-Series Demand, Temperature, Calendar & Public Holidays"] --> FeatureStore["Lag & Rolling Feature Pipeline (src/feature_engineering.py)"]
+    
+    FeatureStore --> Model["Gradient-Boosted LightGBM Regressor (models/lgbm_forecast.pkl)"]
+    
+    Model --> Quantiles["Probabilistic Quantile Bounds: P10 (Conservative), P50 (Expected), P90 (Surge Peak)"]
+    Quantiles --> InventoryEngine["Multi-Echelon Replenishment Engine (src/api.py)"]
+    
+    InventoryEngine --> SS["Dynamic Safety Stock: SS = Z * sigma * sqrt(L)"]
+    InventoryEngine --> ROP["Reorder Point: ROP = (Demand * L) + SS"]
+    InventoryEngine --> EOQ["Economic Order Quantity: EOQ = sqrt(2DS / H)"]
+    
+    SS --> Dashboard["Interactive Streamlit Dashboard (app/streamlit_app.py)"]
+    ROP --> Dashboard
+    EOQ --> Dashboard
+    
+    InventoryEngine --> API["FastAPI REST Endpoints (src/api.py)"]
+    InventoryEngine --> Export["Procurement Horizon CSV Schedule"]
 ```
 
 ---
 
-## The Real Business Problem
+## Commercial Use Case
 
-Every product-based business — retail, e-commerce, manufacturing,
-FMCG — faces the same painful problem:
+Inventory mismanagement directly erodes profitability:
+1. **Stockouts**: Unanticipated demand surges cause lost orders and customer churn.
+2. **Overstocking**: Excess safety inventory bloats working capital and causes warehouse spoilage.
+3. **Vendor Delays**: Fluctuating supplier lead times disrupt order schedules without automated buffer recalculation.
 
-**Problem 1 — Overstocking**
-They order too much inventory. Products sit in warehouses.
-Capital is locked. Storage costs rise. Products expire or go out of season.
-A mid-size retailer overstocking by just 10% loses
-**₹40–80 Lakhs annually** in holding costs alone.
-
-**Problem 2 — Understocking**
-They order too little. Shelves go empty. Customers leave.
-Sales are lost permanently — a customer who can't find
-what they want goes to a competitor and often never returns.
-Stockouts cost Indian retailers an estimated **₹2,000 Crores annually.**
-
-**Problem 3 — Manual Forecasting**
-Most businesses use gut feeling, last year's numbers,
-or simple Excel averages. These methods ignore seasonality,
-trends, holidays, and external events — leading to consistently
-wrong predictions.
-
-**The business need:**
-A system that looks at historical sales data and accurately
-predicts future demand — so procurement, operations, and
-finance teams can make decisions with confidence.
+This platform automates the entire replenishment lifecycle:
+- **Probabilistic Forecasting**: Produces P10 (conservative lower bound), P50 (expected median), and P90 (surge peak) projections instead of brittle single-point estimates.
+- **Dynamic Safety Buffers**: Continuously adjusts safety stock according to rolling demand volatility ($\sigma$) and target cycle service levels (90% to 99%).
+- **Replenishment Automation**: Calculates exact Reorder Points (ROP) and Economic Order Quantities (EOQ) to minimize carrying costs.
 
 ---
 
-## The Solution This Project Builds
+## API Endpoints
 
-A complete multi-model forecasting pipeline that:
+### 1. Health Check
+```http
+GET /health
+```
+Response:
+```json
+{
+  "status": "ok",
+  "service": "demand-forecasting-inventory-replenishment",
+  "model_loaded": true
+}
+```
 
-1. **Analyzes historical patterns** — trend, seasonality, anomalies
-2. **Tests 4 different forecasting approaches** — from statistical to ML
-3. **Tracks every experiment** — MLflow logs all 40+ model runs
-4. **Serves predictions via API** — FastAPI endpoint for integration
-5. **Visualizes forecasts** — interactive Streamlit dashboard
+### 2. Probabilistic Demand Forecast
+```http
+POST /predict
+Content-Type: application/json
 
-### The 4 Models Compared
+{
+  "hour": 14,
+  "temp": 24.5,
+  "is_holiday": 0,
+  "day_of_week": 1,
+  "month": 7,
+  "quarter": 3,
+  "is_weekend": 0,
+  "lag_7": 125.0,
+  "lag_14": 118.0,
+  "lag_30": 112.0,
+  "rolling_mean_7": 122.0,
+  "rolling_std_7": 16.0,
+  "rolling_mean_30": 115.0
+}
+```
+Response:
+```json
+{
+  "timestamp": "2026-10-22T23:55:00.000Z",
+  "predicted_demand": 126.9,
+  "quantile_p10": 106.4,
+  "quantile_p90": 147.4,
+  "volatility_index": 16.0
+}
+```
 
-| Model | Type | Best For |
-|-------|------|----------|
-| **ARIMA** | Statistical | Short-term, stationary series |
-| **SARIMA** | Statistical | Series with clear seasonality |
-| **Prophet** | Additive | Holidays, weekly/yearly patterns |
-| **LightGBM** | ML | Complex patterns, multiple features |
+### 3. Inventory Replenishment Policy Calculation
+```http
+POST /api/v1/inventory-policy
+Content-Type: application/json
 
-### Feature Engineering for LightGBM
-
-| Feature Type | Examples |
-|-------------|----------|
-| Lag features | Sales 7 days ago, 14 days ago, 30 days ago |
-| Rolling stats | 7-day rolling mean, 30-day rolling std |
-| Calendar features | Day of week, month, quarter, is_weekend |
-| Holiday features | Indian festivals, regional holidays |
-
----
-
-## Model Performance Results
-
-Evaluated using TimeSeriesSplit (5 folds) — never random split.
-
-| Model | RMSE | MAE | MAPE |
-|-------|------|-----|------|
-| ARIMA | 284.3 | 201.7 | 14.2% |
-| SARIMA | 251.8 | 188.4 | 12.8% |
-| Prophet | 198.4 | 154.2 | 9.6% |
-| **LightGBM** | **142.7** | **108.3** | **6.8%** |
-
-> **LightGBM wins** — 52% lower MAPE than ARIMA baseline.
-> Industry acceptable MAPE for retail forecasting: under 10%.
-
----
-
-## Business Impact
-
-| Metric | Before | After |
-|--------|--------|-------|
-| Forecast accuracy | ~65% (Excel average) | ~93% (LightGBM) |
-| Overstock incidents | Monthly | Reduced by 34% |
-| Stockout incidents | Monthly | Reduced by 41% |
-| Inventory holding cost | Baseline | Estimated 18–25% reduction |
-| Planning cycle time | 3–4 days manual | Real-time API response |
-
-> **Industry benchmark:** A 6% MAPE improvement in demand forecasting
-> translates to **8–12% reduction in inventory costs** for mid-size retailers.
-
----
-
-## Industries Where This System Applies
-
-| Industry | Use Case | Impact |
-|----------|----------|--------|
-| **Retail / FMCG** | Stock replenishment planning | 20–30% inventory cost reduction |
-| **E-Commerce** | Warehouse stocking by SKU | Reduce delivery delays |
-| **Manufacturing** | Raw material procurement | Reduce production downtime |
-| **Healthcare** | Medicine and equipment demand | Prevent critical stockouts |
-| **Logistics** | Vehicle and route demand | Optimize fleet utilization |
-| **Energy** | Power demand forecasting | Grid load balancing |
-| **Agriculture** | Crop yield and price forecasting | Better procurement pricing |
+{
+  "daily_demand": 126.9,
+  "demand_std": 16.0,
+  "lead_time_days": 7,
+  "service_level": 0.95,
+  "order_cost": 50.0,
+  "holding_cost_annual": 18.0
+}
+```
 
 ---
 
-## Complete Tech Stack
+## Local Setup & Development
 
-| Category | Tool | Purpose |
-|----------|------|---------|
-| Data Processing | Python, Pandas, NumPy | Loading, cleaning, feature engineering |
-| Statistical Models | statsmodels, pmdarima | ARIMA, SARIMA with auto parameter tuning |
-| ML Forecasting | LightGBM, XGBoost | Gradient boosting on engineered features |
-| Additive Model | Prophet | Trend + seasonality + holiday decomposition |
-| Experiment Tracking | MLflow | Log 40+ runs, compare models, register best |
-| Visualization | Plotly, Matplotlib | Interactive forecast charts |
-| API Serving | FastAPI + Uvicorn | Real-time forecast endpoint |
-| Dashboard | Streamlit | Business-facing interactive dashboard |
-| Validation | TimeSeriesSplit | Proper temporal cross-validation |
-
----
-
-## Project Structure
-
-demand-forecasting-timeseries/
- data/
-    bike_sharing.csv           # UCI Bike Sharing dataset (daily + hourly)
- notebooks/
-    01_eda_timeseries.ipynb    # Stationarity, ACF/PACF, decomposition
-    02_arima_sarima.ipynb      # Statistical baseline models
-    03_prophet_model.ipynb     # Prophet with holidays and CV
-    04_lightgbm_model.ipynb   # Feature engineering + ML forecasting
- app/
-    streamlit_app.py           # Forecast dashboard
- src/
-    init.py
-    feature_engineering.py     # Lag, rolling, calendar features
-    model_utils.py             # Train, evaluate, log to MLflow
- models/
-    lgbm_forecast.pkl          # Best model saved
- requirements.txt
- README.md
-
----
-
-## Key Technical Decisions
-
-**Why TimeSeriesSplit instead of random split?**
-Time series data has temporal order. Using random train/test split
-causes data leakage — the model sees future data during training.
-TimeSeriesSplit always trains on past, tests on future. This gives
-honest, realistic performance estimates.
-
-**Why LightGBM over deep learning (LSTM)?**
-On tabular time series data with engineered features, gradient
-boosting consistently outperforms LSTM with:
-- 10x faster training
-- No GPU required
-- More interpretable
-- Better performance on datasets under 100K rows
-
-**Why MLflow?**
-Every experiment — hyperparameter combination, feature set,
-model type — is logged. Results are reproducible. The best
-model is registered and versioned for deployment.
-
----
-
-## How to Run Locally
-
+### 1. Environment Installation
 ```bash
-# Clone repo
 git clone https://github.com/MuhammadMinhaj229/demand-forecasting-timeseries.git
 cd demand-forecasting-timeseries
-
-# Install dependencies
 pip install -r requirements.txt
-
-# Run notebooks in order (01 → 02 → 03 → 04)
-
-# Start MLflow UI
-mlflow ui
-
-# Launch dashboard
-streamlit run app/streamlit_app.py
-
-# Start API
-uvicorn src.api:app --reload
 ```
 
----
+### 2. Run Test Suite
+```bash
+python -m pytest tests/
+```
 
-## Key Findings Summary
+### 3. Launch Streamlit Executive Hub
+```bash
+streamlit run app/streamlit_app.py
+```
 
-- **Strong weekly seasonality** — weekday demand 2.3x higher than weekends
-- **Clear yearly trend** — 17% year-over-year growth in bike demand
-- **Holiday effect** — demand drops 31% on public holidays
-- **Top LightGBM features** — lag_7, rolling_mean_30, hour, temp
-- **Best model** — LightGBM with MAPE 6.8% vs ARIMA baseline 14.2%
-- **40+ MLflow experiments** — full comparison logged and reproducible
-
----
-
-## Live Demo
-
- **[Launch Forecast Dashboard](https://demand-forecasting-timeseries-2c28agejbap9ell2fr9owv.streamlit.app/)**
-
----
-
-*Built by Mohammed Minhaj Mahmood*
-*[LinkedIn](https://linkedin.com/in/muhammadminhaj229) · [GitHub](https://github.com/MuhammadMinhaj229) · Hyderabad, India*
+### 4. Launch FastAPI Server
+```bash
+uvicorn src.api:app --host 0.0.0.0 --port 8000 --reload
+```
