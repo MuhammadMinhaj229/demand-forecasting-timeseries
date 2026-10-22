@@ -15,6 +15,22 @@
 
 ---
 
+## Architecture Flow
+
+```mermaid
+flowchart TD
+    SeriesData["Historical Time-Series Records"] --> Features["Lags, Rolling Means & Calendar Features"]
+    Features --> Models["Model Benchmark Engine"]
+    Models --> LightGBM["LightGBM Regressor"]
+    Models --> Prophet["Facebook Prophet"]
+    Models --> ARIMA["ARIMA / SARIMA"]
+    Models --> Evaluation["RMSE, MAE & MAPE Tracking"]
+    Evaluation --> API["FastAPI Serving Endpoint"]
+    API --> Dashboard["Interactive Streamlit Interface"]
+```
+
+---
+
 ## The Real Business Problem
 
 Every product-based business — retail, e-commerce, manufacturing,
